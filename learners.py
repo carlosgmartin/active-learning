@@ -8,6 +8,7 @@ import numpy as np
 
 class Learner:
 
+
     def choose(self):
         '''Choose a point to label'''
 
@@ -96,7 +97,7 @@ class Learner:
         for node in self.nodes:
             marginal_likelihood[node] = self.marginal_likelihood(self.counts[node])
             probability[node] = .5 * marginal_likelihood[node] + .5 * np.product([probability[child] for child in self.children[node]])
-            
+        
         # print 'Calculating predictives...'
         predictive = {}
         for node in self.nodes:
@@ -121,7 +122,6 @@ class Learner:
             prediction = max(leaf_predictive.keys(), key=lambda label: leaf_predictive[label])
 
             predictions.append(prediction)
-
 
         return predictions
 
