@@ -8,6 +8,11 @@ import numpy as np
 
 class Learner:
 
+    def choose(self):
+        '''Choose a point to label'''
+        return np.random.choice(self.leaves)
+
+
     def __init__(self, data, labels):
         '''Initialize the learner'''
 
