@@ -10,7 +10,12 @@ class Learner:
 
     def choose(self):
         '''Choose a point to label'''
-        return np.random.choice(self.leaves)
+
+        # Find the set of points that have not been labeled
+        remaining = list(set(self.leaves).difference(self.known.keys()))
+        
+        # Choose a random point from this set
+        return np.random.choice(remaining)
 
 
     def __init__(self, data, labels):
