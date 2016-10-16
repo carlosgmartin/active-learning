@@ -38,13 +38,13 @@ class Learner:
 	def query(self):
 
 		# Query a random point
-		return self.points[42]
+		# return self.points[np.random.choice(self.points.shape[0])]
 
 		# Query the point that maximizes the expected number of correct labels
 		return max(
 			self.points,
 			# Expected number of correct labels given the label of this point
-			key=lambda point: sum(
+			key=lambda point: np.sum(
 				# Probability that this point has this label
 				self.probability(point, label)
 				# Expected number of correct labels given that this point has this label

@@ -20,7 +20,7 @@ skip = 20
 
 
 
-for trial in range(1):
+for trial in range(10):
 
     print 'Trial {}\n'.format(trial)
 

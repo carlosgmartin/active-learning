@@ -1,4 +1,5 @@
 import numpy as np
+from itertools import count
 from learner import Learner
 from sklearn.datasets import load_digits
 
@@ -23,7 +24,7 @@ def get_label(point):
 # Create the learner
 learner = Learner(points, labels)
 
-while True:
+for queries in count():
 
 	# Query the label of a point
 	point = learner.query()
@@ -39,7 +40,10 @@ while True:
 
 	# Compute the number of correct predictions
 	correct = sum(predictions == dataset.target)
+
+	print 'Queries:'.ljust(20) + str(queries)
 	print 'Correct:'.ljust(20) + str(correct)
+	print ''
 
 
 
