@@ -72,7 +72,7 @@ class Learner:
 
 
 
-    def query_divergence(self):
+    def query_active(self):
         # Find the leafs that have not been labeled yet
         remaining = list(set(self.leafs).difference(self.known.keys()))
         

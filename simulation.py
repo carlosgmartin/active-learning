@@ -1,13 +1,10 @@
-# python -m cProfile -s time simulation.py
-
-
 from __future__ import division
-from learners import Learner
-from sklearn.datasets import load_digits
 import numpy as np
-from random import shuffle
 import matplotlib.pyplot as plt
-
+from sklearn.datasets import load_digits
+from sklearn.utils import shuffle
+from learners import Learner
+from itertools import count
 
 # Load the dataset
 dataset = load_digits()
@@ -15,53 +12,63 @@ dataset = load_digits()
 # Turn into a binary classification problem
 dataset.target = dataset.target < 5
 
-# Steps to skip before testing accuracy
-skip = 20
+# Define the set of points
+points = np.arange(len(dataset.data))
 
+# Define the set of labels
+labels = np.unique(dataset.target)
 
+# Define the total number of queries per trial
+total_queries = int(len(points) * .2)
 
-for trial in range(10):
+# Turn on interactive plotting
+plt.ion()
 
-    print 'Trial {}\n'.format(trial)
+# Define the x axis
+plt.xlabel('Fraction of points queried')
+x = np.arange(total_queries) / len(points)
 
-    # Create the learner
-    learner = Learner(dataset.data, np.unique(dataset.target))
+# Define the y axis
+plt.ylabel('Fraction of labels correct')
+y = np.empty(total_queries)
 
-    steps = []
-    accuracies = []
+for trial in count():
 
-    for step in range(len(dataset.target)):
-        # Let the learner choose a point to label
-        point = learner.choose()
+	# Shuffle the dataset
+	data, target = shuffle(dataset.data, dataset.target)
 
-        # Acquire the label of this point
-        label = dataset.target[point]
+	# Create the learner
+	learner = Learner(data, labels)
 
-        # Learn the label of this point
-        learner.learn(point, label)
+	if trial % 2 == 0:
+		# Use random sampling
+		learner.query = learner.query_random
+		color = 'blue'
+	else:
+		# Use active sampling
+		learner.query = learner.query_active
+		color = 'red'
 
-        if step % skip == 0:
-            print '\nQueried {}/{} labels so far ({:.2f}%)'.format(step, len(dataset.target), step/len(dataset.target)*100)
+	for queries in range(total_queries):
 
-            # Print the ratio of correct predictions
-            accuracy = np.sum(learner.predict() == dataset.target) / len(dataset.target)
-            
-            print 'Accuracy: {:.2f}%'.format(accuracy * 100)
+		# Query the label of a point
+		point = learner.query()
 
-            print 'Confidence: {:.2f}\n'.format(learner.confidence())
+		# Learn the label of this point
+		learner.learn(point, target[point])
 
-            steps.append(step)
-            accuracies.append(accuracy)
+		# Predict the labels of all points
+		predictions = map(learner.predict, points)
 
-    plt.plot(steps, accuracies, linewidth=2)
+		# Get the number of correct predictions
+		correct = sum(predictions == target)
 
+		y[queries] = correct / len(points)
 
+	plt.plot(x, y, alpha=.5, color=color)
+	plt.pause(.1)
 
-
-
-plt.xlabel('Queries')
-plt.ylabel('Accuracy')
-plt.show()
+plt.show(block=True)
 
 
 
