@@ -41,12 +41,14 @@ for trial in range(1):
         learner.learn(point, label)
 
         if step % skip == 0:
-            print 'Queried {}/{} labels so far ({:.2f}%)'.format(step, len(dataset.target), step/len(dataset.target)*100)
+            print '\nQueried {}/{} labels so far ({:.2f}%)'.format(step, len(dataset.target), step/len(dataset.target)*100)
 
             # Print the ratio of correct predictions
             accuracy = np.sum(learner.predict() == dataset.target) / len(dataset.target)
             
-            print 'Accuracy: {:.2f}%\n'.format(accuracy * 100)
+            print 'Accuracy: {:.2f}%'.format(accuracy * 100)
+
+            print 'Confidence: {:.2f}\n'.format(learner.confidence())
 
             steps.append(step)
             accuracies.append(accuracy)

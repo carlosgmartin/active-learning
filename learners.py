@@ -4,6 +4,7 @@ from scipy.stats import binom, beta
 from scipy.integrate import quad
 from scipy.special import binom as binom_coefficient
 import numpy as np
+from copy import deepcopy
 
 
 class Learner:
@@ -11,12 +12,65 @@ class Learner:
 
     def choose(self):
         '''Choose a point to label'''
+        return self.choose_smart()
+
+
+    def choose_smart(self):
+        '''Use an active learning strategy'''
+
+        # Find the set of points that have not been labeled
+        remaining = list(set(self.leaves).difference(self.known.keys()))
+        
+        # Use a subset of these
+        remaining = np.random.choice(remaining, size=50, replace=False)
+
+        # Calculate the estimated value of querying each unlabeled point
+        leaf_values = {}
+
+        for leaf in remaining:
+
+            leaf_value = 0
+
+            for outcome in self.labels:
+                p_outcome = self.leaf_predictive[leaf][outcome]
+
+                clone = deepcopy(self)
+                clone.learn(leaf, outcome)
+
+                # clone.update_leaf_predictive(leaf) # Update leaf predictive distributions
+                # This won't work, need to update everything else
+
+                clone.predict() # Update everything
+                confidence = clone.confidence()
+
+                leaf_value += p_outcome * confidence
+
+            leaf_values[leaf] = leaf_value
+            print 'Value of querying leaf {}:\t{:.4f}'.format(leaf, leaf_value)
+
+        # Choose the leaf with the highest expected query value
+        return max(remaining, key=lambda leaf: leaf_values[leaf])
+
+
+    def choose_random(self):
+        '''Use a random sampling strategy'''
 
         # Find the set of points that have not been labeled
         remaining = list(set(self.leaves).difference(self.known.keys()))
         
         # Choose a random point from this set
         return np.random.choice(remaining)
+
+
+    def confidence(self):
+        '''Returns the expected fraction of correct labels'''
+        total = 0
+        for leaf in self.leaves:
+            if leaf in self.known:
+                total += 1
+            else:
+                total += max(self.leaf_predictive[leaf].values())
+        return total / len(self.leaves)
 
 
     def __init__(self, data, labels):
@@ -53,6 +107,17 @@ class Learner:
         # Store known labels
         self.known = {}
 
+        # Store predictives of each leaf
+        self.leaf_predictive = {}
+        for leaf in self.leaves:
+            self.leaf_predictive[leaf] = {}
+            for label in self.labels:
+                self.leaf_predictive[leaf][label] = 1 / len(self.labels)
+
+
+        # Make sure everything has been built (need to clean up and restructure this)
+        self.predict()
+
     def learn(self, point, label):
         '''Learn the label of a data point'''
 
@@ -78,7 +143,7 @@ class Learner:
         return 1 / binom_coefficient(trials, successes) / (trials + 1)
 
 
-    def predictive(self, counts):
+    def predictive_dist(self, counts):
         '''Returns the predictive distribution'''
         successes = counts[0]
         failures = counts[1]
@@ -93,15 +158,15 @@ class Learner:
 
         # print 'Calculating marginal likelihoods...'
         marginal_likelihood = {}
-        probability = {}
+        self.probability = {}
         for node in self.nodes:
             marginal_likelihood[node] = self.marginal_likelihood(self.counts[node])
-            probability[node] = .5 * marginal_likelihood[node] + .5 * np.product([probability[child] for child in self.children[node]])
+            self.probability[node] = .5 * marginal_likelihood[node] + .5 * np.product([self.probability[child] for child in self.children[node]])
         
         # print 'Calculating predictives...'
-        predictive = {}
+        self.predictive = {}
         for node in self.nodes:
-            predictive[node] = self.predictive(self.counts[node])
+            self.predictive[node] = self.predictive_dist(self.counts[node])
 
         predictions = []
         for leaf in self.leaves:
@@ -110,23 +175,26 @@ class Learner:
                 predictions.append(self.known[leaf])
                 continue
 
-            leaf_predictive = {label: 0 for label in self.labels}
+            # Update the predictive distribution of this leaf
+            self.update_leaf_predictive(leaf)
 
-            for node in self.ancestors(leaf):
-
-                weight = probability[node] * np.product([(1 - probability[ancestor]) for ancestor in self.ancestors(node)[1:]])
-
-                for label in self.labels:
-                    leaf_predictive[label] += predictive[node][label] * weight
-
-            prediction = max(leaf_predictive.keys(), key=lambda label: leaf_predictive[label])
+            prediction = max(self.leaf_predictive[leaf].keys(), key=lambda label: self.leaf_predictive[leaf][label])
 
             predictions.append(prediction)
 
         return predictions
 
 
+    def update_leaf_predictive(self, leaf):
+        '''Update the predictive distribution of a leaf'''
+        self.leaf_predictive[leaf] = {label: 0 for label in self.labels}
 
+        for node in self.ancestors(leaf):
+
+            weight = self.probability[node] * np.product([(1 - self.probability[ancestor]) for ancestor in self.ancestors(node)[1:]])
+
+            for label in self.labels:
+                self.leaf_predictive[leaf][label] += self.predictive[node][label] * weight
 
 
 
