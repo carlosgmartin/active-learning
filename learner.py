@@ -58,21 +58,14 @@ class Learner:
         self.update(self.nodes)
 
 
-
-    def query(self):
-        ''' Choose a leaf to query '''
-
-        return self.query_random()
-
-
-
     def divergence(self, prior, posterior):
-        ''' Returns the KL divergence between two categorical distributions '''
+        ''' Returns the information gain (relative entropy or KL divergence) '''
         return sum(posterior[label] * np.log(posterior[label] / prior[label]) if posterior[label] != 0 else 0 for label in self.labels)
 
 
-
     def query_active(self):
+        ''' Query the unlabeled leaf with the highest expected information gain '''
+
         # Find the leafs that have not been labeled yet
         remaining = list(set(self.leafs).difference(self.known.keys()))
         
@@ -101,46 +94,25 @@ class Learner:
         return max(value.keys(), key=lambda leaf: value[leaf])
 
 
+    def query_active_intensive(self):
+        ''' Take into account information gains of other leafs '''
+        
+        # Learn the label of a leaf
+        # new_dist = predictive distribution across all labels
+        # Unlearn the label of the leaf
+        # Compare new_dist to current predictive distribution
+        # Expected KL divergence over all leafs
 
-
+        pass
+        
 
     def query_random(self):
+        ''' Query the label of a random unlabeled leaf '''
+
         # Find the leafs that have not been labeled yet
         remaining = list(set(self.leafs).difference(self.known.keys()))
         
         return np.random.choice(remaining)
-
-
-
-    def query_max_expected(self):
-
-        # Find the leafs that have not been labeled yet
-        remaining = list(set(self.leafs).difference(self.known.keys()))
-        
-        # Use a subset of these
-        remaining = np.random.choice(remaining, size=50, replace=False)
-
-        # Estimate the value of querying each leaf
-        value = {}
-
-        for leaf in remaining:
-            value[leaf] = 0
-            
-            # Expected number of correct labels given the label of this point
-            for label in self.labels:
-
-                # Probability that this point has this label
-                probability = self.leaf_predictive[leaf, label]
-                
-                # Expected number of correct labels given that this point has this label
-                self.learn(leaf, label)
-                value[leaf] += probability * self.expected_correct()
-                self.unlearn(leaf, label)
-        
-            # print 'Value of leaf {}: {:.0f}'.format(leaf, value[leaf])
-
-        # Choose the leaf that maximizes the expected number of correct labels
-        return max(value.keys(), key=lambda leaf: value[leaf])
 
 
     def update(self, path):
@@ -180,15 +152,10 @@ class Learner:
         for node in reversed(path):
 
             # Update weight
-            self.weight[node] = posterior[node] * np.product([(1 - posterior[ancestor]) for ancestor in self.ancestors[node][1:]])
-
-            # Faster but more floating point errors
-            '''
             if node in self.parent:
                 self.weight[node] = posterior[node] * (1/posterior[self.parent[node]] - 1) * self.weight[self.parent[node]]
             else:
                 self.weight[node] = posterior[node]
-            '''
 
         # Update leaf predictives
         for leaf in self.leafs:
@@ -226,12 +193,6 @@ class Learner:
     def predict(self, leaf):
         ''' Predict the label of a leaf '''
         return max(self.labels, key=lambda label: self.leaf_predictive[leaf, label])
-
-
-    def expected_correct(self):
-        ''' Expected number of correct labels '''
-        return sum(max(self.leaf_predictive[leaf, label] for label in self.labels) for leaf in self.leafs)
-
 
 
 

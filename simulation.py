@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.datasets import load_digits
 from sklearn.utils import shuffle
-from learners import Learner
+from learner import Learner
 from itertools import count
 
 # Load the dataset
@@ -19,7 +19,7 @@ points = np.arange(len(dataset.data))
 labels = np.unique(dataset.target)
 
 # Define the total number of queries per trial
-total_queries = int(len(points) * .2)
+total_queries = int(len(points) * .5)
 
 # Turn on interactive plotting
 plt.ion()
